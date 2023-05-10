@@ -24,10 +24,24 @@ namespace TestGame.Player
         //
         private NavMeshAgent m_Agent;
 
+
+        //++[Aimtar]
         //
-        // Body of player. Base game object rotates separately. Body rotates toward pointer.
+        // Animator controller
         //
-        public GameObject Body;
+        private GameObject Billboard;
+
+        //
+        // Animator controller
+        //
+        private Animator m_Animator;
+        //--[Aimtar]
+
+
+        ////
+        //// Body of player. Base game object rotates separately. Body rotates toward pointer.
+        ////
+        //public GameObject Body;
 
         //
         // Laser pointer. It really should be part of gun...
@@ -132,6 +146,22 @@ namespace TestGame.Player
             this.m_Agent = this.GetComponent<NavMeshAgent>();
             this.m_Agent.updateRotation = false;
 
+            //++[Aimtar]
+            //
+            // Acquires Billboard
+            //
+            Billboard = GameObject.Find("Billboard");
+
+            //
+            // Acquires Animator
+            //
+            if(Billboard)
+            {
+                this.m_Animator = Billboard.GetComponent<Animator>();
+            }
+            //--[Aimtar]
+
+
             //
             // Acquires character.
             //
@@ -195,6 +225,17 @@ namespace TestGame.Player
                 Input.GetAxis("Vertical")
             );
 
+            //++[Aimtar]
+            if(Input.GetAxis("Horizontal")<0)
+            {
+                this.transform.localScale = new Vector3(-1, 1, 1);
+            }
+            else
+            {
+                this.transform.localScale = new Vector3(1, 1, 1);
+            }
+            //--[Aimtar]
+
             //
             // Initial angles for move and look.
             //
@@ -202,6 +243,8 @@ namespace TestGame.Player
             var lookDirectionAngle = 0.0F;
 
             moveDirectionAngle = MoveCharacter(deltaTime, rawMove, moveDirectionAngle);
+
+
 
             //
             // Acquire pad look direction.
@@ -268,14 +311,14 @@ namespace TestGame.Player
 
         private void RotateCharacter(float deltaTime, float moveDirectionAngle, float lookDirectionAngle)
         {
-            if (moveDirectionAngle != 0.0F || lookDirectionAngle != 0.0F)
-            {
-                //
-                // Add-up stick space rotation to controller orientation.
-                //
-                var rotation = Quaternion.Euler(0.0F, m_LookAngle, 0.0F) * this.transform.rotation;
-                this.Body.transform.rotation = Quaternion.RotateTowards(this.Body.transform.rotation, rotation, this.RotationAngularSpeed * deltaTime);
-            }
+            //if (moveDirectionAngle != 0.0F || lookDirectionAngle != 0.0F)
+            //{
+            //    //
+            //    // Add-up stick space rotation to controller orientation.
+            //    //
+            //    var rotation = Quaternion.Euler(0.0F, m_LookAngle, 0.0F) * this.transform.rotation;
+            //    this.Body.transform.rotation = Quaternion.RotateTowards(this.Body.transform.rotation, rotation, this.RotationAngularSpeed * deltaTime);
+            //}
         }
 
         private void HandleWeaponChange()
@@ -342,6 +385,27 @@ namespace TestGame.Player
 
         private float MoveCharacter(float deltaTime, Vector2 rawMove, float moveDirectionAngle)
         {
+
+            //
+            // Adjust speed.
+            //
+            this.m_CurrentSpeed = this.m_IsRunning ? this.SprintSpeed : this.MoveSpeed;
+
+            //++[Aimtar]
+            //
+            // Animator controller
+            //
+            if (m_Animator)
+            {
+                m_Animator.SetFloat("MoveSpeed", m_CurrentSpeed * rawMove.sqrMagnitude);
+                //Debug.Log("Current move speed is:" + m_CurrentSpeed * rawMove.sqrMagnitude);
+            }
+            else
+            {
+                Debug.LogError("m_Animator is null!!!");
+            }
+            //--[Aimtar]
+
             if (rawMove.sqrMagnitude >= (DeadZone * DeadZone))
             {
                 //
@@ -349,11 +413,6 @@ namespace TestGame.Player
                 //
                 var direction = new Vector3(rawMove.x, 0.0F, rawMove.y);
                 direction.Normalize();
-
-                //
-                // Adjust speed.
-                //
-                this.m_CurrentSpeed = this.m_IsRunning ? this.SprintSpeed : this.MoveSpeed;
 
                 //
                 // Compute relative move vector.
